@@ -2,30 +2,58 @@
 
 #include <fstream>
 
-File::File(const std::string filename, bool recently_created = false)
+File::File(const std::string &filename, bool recently_created = false)
 {
     this -> filename = filename;
     if(recently_created){
-        Block *first_block = new Block();
-        blocks.push_back(first_block);
-        std::ofstream archivo(filename + ".blocks", std::ios_base::binary);
-        archivo.write(first_block->getContent().data(), 4096);
-        first_block->setUsed_bytes(0);
-        blocks_number = 1;
+        std::fstream archivo(filename, std::ios::out);
+        archivo.close();
+        blocks_number = 0;
+        file_reference = std::fstream(filename, std::ios::out | std::ios::in | std::ios_base::binary);
+        loaded_block = new Block;
     }
+    else{
+
+    }
+    buffer = new char[BUFFER_SIZE]();
+    read_position = 0;
+    write_position = 0;
+    buffer_usage = 0;
 
 }
 
-void File::write(const std::string content)
+void File::write(const char* content, std::streamsize stream_size)
 {
-    bool is_full = false;
-    unsigned short full_index = 0;
-    unsigned short filled_bytes = blocks.back()->fill(content, is_full, full_index);
-    if(filled_bytes != 0){
-        std::ofstream blocks_file(filename + ".blocks", std::ios_base::binary | std::ios_base::app);
-        blocks_file.write(blocks.back()->getContent().data(), 4096);
+    auto previous_usage = buffer_usage;
+    unsigned long left_streamsize;
+    const char *left_content = fill_buffer(content, stream_size, left_streamsize);
+    if(left_content == nullptr)
+    {
+        loaded_block->edit(buffer, write_position, stream_size);
     }
-    else if(is_full){
-        //
+    else{
+
+        //tin
+        write(left_content, left_streamsize);
     }
+}
+
+const char *File::fill_buffer(const char *content, std::streamsize stream_size, unsigned long &left_streamsize)
+{
+    unsigned int cont = 0;
+    while(buffer_usage != BUFFER_SIZE && cont != stream_size){
+        buffer[buffer_usage] = content[cont];
+        buffer_usage++;
+        cont++;
+        write_position++;
+    }
+
+    if(buffer_usage == BUFFER_SIZE && cont != stream_size){
+        left_streamsize = stream_size - cont;
+        return &content[cont];
+    }
+    else{
+        return nullptr;
+    }
+
 }
