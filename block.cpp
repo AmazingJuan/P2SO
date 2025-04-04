@@ -5,6 +5,11 @@ Block::Block() {
     block_usage = 0;
 }
 
+Block::~Block()
+{
+
+}
+
 void Block::setBlock_usage(unsigned short newBlock_usage)
 {
     block_usage = newBlock_usage;

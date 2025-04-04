@@ -7,9 +7,12 @@ SOURCES += \
         block.cpp \
         file.cpp \
         main.cpp \
+        md5.cpp \
         vcm.cpp
 
 HEADERS += \
     block.h \
     file.h \
+    json.hpp \
+    md5.h \
     vcm.h
