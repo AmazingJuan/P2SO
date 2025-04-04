@@ -2,6 +2,7 @@
 #define FILE_H
 #include "block.h"
 #include <string>
+#include <vector>
 #include "json.hpp"
 #define BUFFER_SIZE BLOCK_SIZE
 
@@ -11,15 +12,18 @@ class File
 {
 public:
     File(const std::string &filename, bool recently_created);
+    ~File();
     void write(const char *content, std::streamsize stream_size);
     void sync();
     void version();
+    void close();
 private:
     unsigned long read_position;
     unsigned long write_position;
     unsigned short blocks_number;
     std::string filename;
     Block *loaded_block;
+    std::vector<std::string> blocks_hash;
     char *buffer;
     unsigned short buffer_usage;
     json metadata;

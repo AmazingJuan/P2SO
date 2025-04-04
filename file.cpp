@@ -31,6 +31,11 @@ File::File(const std::string &filename, bool recently_created = false)
     buffer_usage = 0;
 }
 
+File::~File()
+{
+    close();
+}
+
 void File::write(const char* content, std::streamsize stream_size)
 {
     unsigned long left_streamsize;
@@ -42,6 +47,7 @@ void File::write(const char* content, std::streamsize stream_size)
         buffer = new char[BLOCK_SIZE]();
         buffer_usage = 0;
         write(left_content, left_streamsize);
+        version();
     }
 }
 
@@ -50,12 +56,22 @@ void File::sync()
     std::ofstream archivo(filename, std::ios::app);
     archivo.write(buffer, buffer_usage);
     archivo.close();
-    version();
 }
 
 void File::version()
 {
+    if (metadata["versions"].is_string()) {
+        metadata["versions"] = json::array();
+    }
 
+
+    metadata["versions"].push_back({"hash", {{"starts_at", write_position}, {"offset", loaded_block->getBlock_usage()}}});
+}
+
+void File::close()
+{
+    if(buffer != nullptr) delete[] buffer;
+    if(loaded_block != nullptr) delete loaded_block;
 }
 
 const char *File::fill_buffer(const char *content, std::streamsize stream_size, unsigned long &left_streamsize)

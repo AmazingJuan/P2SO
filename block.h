@@ -5,6 +5,7 @@ class Block
 {
 public:
     Block();
+    ~Block();
     void setBlock_usage(unsigned short newBlock_usage);
 
     unsigned short getBlock_usage() const;

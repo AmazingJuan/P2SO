@@ -7,7 +7,7 @@ Block::Block() {
 
 Block::~Block()
 {
-
+    if(content != nullptr) delete [] content;
 }
 
 void Block::setBlock_usage(unsigned short newBlock_usage)
