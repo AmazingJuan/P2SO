@@ -13,7 +13,6 @@ public:
     VCM();
     File &open();
     File &create(const std::string filename);
-    void read();
 private:
     std::unordered_map<std::string, File*> opened_files;
 };
