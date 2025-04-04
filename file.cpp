@@ -2,7 +2,7 @@
 #include <fstream>
 #include <iostream>
 #include "vcm.h"
-
+#include "utilities.h"
 File::File(const std::string &filename, bool recently_created = false)
 {
     this -> filename = filename;
@@ -10,8 +10,7 @@ File::File(const std::string &filename, bool recently_created = false)
         std::fstream archivo(filename, std::ios::out);
         std::fstream archivo2(filename + FILE_METADATA_EXTENSION, std::ios::out);
         json j;
-        j["versions"] = "";
-        j["blocks"] = "";
+        j["versions"] = json::array();
         metadata = j;
         std::ofstream meta(filename + FILE_METADATA_EXTENSION);
         if (meta.is_open()) {
@@ -21,13 +20,12 @@ File::File(const std::string &filename, bool recently_created = false)
         archivo.close();
         blocks_number = 0;
         loaded_block = new Block;
+        latest_version = 0;
     }
     else{
 
     }
     buffer = new char[BUFFER_SIZE]();
-    read_position = 0;
-    write_position = 0;
     buffer_usage = 0;
 }
 
@@ -40,14 +38,15 @@ void File::write(const char* content, std::streamsize stream_size)
 {
     unsigned long left_streamsize;
     const char *left_content = fill_buffer(content, stream_size, left_streamsize);
-    if(left_content != nullptr)
+    if(left_content != nullptr || buffer_usage == BLOCK_SIZE)
     {
+        generate_buffer_hash();
         sync();
+        version();
         delete[] buffer;
         buffer = new char[BLOCK_SIZE]();
         buffer_usage = 0;
         write(left_content, left_streamsize);
-        version();
     }
 }
 
@@ -56,16 +55,26 @@ void File::sync()
     std::ofstream archivo(filename, std::ios::app);
     archivo.write(buffer, buffer_usage);
     archivo.close();
+    std::fstream vcm_data(VCM_META_FILENAME, std::ios::in|std::ios::out);
+    json j = json::parse(vcm_data);
+    std::ofstream vcm_blocks(VCM_BLOCKS_FILENAME, std::ios::app);
+    if (!hash_exists(j, current_block_hash)){
+        unsigned int pos = vcm_blocks.tellp();
+        j["blocks"].push_back({{"hash", current_block_hash}, {"pos", pos}, {"offset", buffer_usage}});
+        save_json(j, VCM_META_FILENAME);
+        vcm_blocks.write(buffer, buffer_usage);
+        vcm_blocks.close();
+    }
+
 }
 
 void File::version()
 {
-    if (metadata["versions"].is_string()) {
-        metadata["versions"] = json::array();
-    }
+    blocks_hashes.push_back(current_block_hash);
+    latest_version++;
+    metadata["versions"].push_back({{"name", "v" + std::to_string(latest_version)}, {"blocks", blocks_hashes}, {"timestamp", get_time_stamp()}});
 
-
-    metadata["versions"].push_back({"hash", {{"starts_at", write_position}, {"offset", loaded_block->getBlock_usage()}}});
+    save_json(metadata, filename + FILE_METADATA_EXTENSION);
 }
 
 void File::close()
@@ -103,4 +112,9 @@ void File::dispose_block()
 void File::select_block(unsigned int block_number)
 {
 
+}
+
+void File::generate_buffer_hash()
+{
+    current_block_hash = md5(buffer);
 }

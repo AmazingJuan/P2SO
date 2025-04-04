@@ -1,5 +1,5 @@
 #include "block.h"
-
+#include "utilities.h"
 Block::Block() {
     content = new char[BLOCK_SIZE]();
     block_usage = 0;
@@ -43,4 +43,19 @@ bool Block::edit(char *content, unsigned long position, unsigned long offset)
     else{
         return false;
     }
+}
+
+void Block::setHash(const std::string &newHash)
+{
+    hash = newHash;
+}
+
+const std::string Block::getHash() const
+{
+    return hash;
+}
+
+void Block::generate_hash()
+{
+    md5(content);
 }

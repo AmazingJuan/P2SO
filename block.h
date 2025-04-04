@@ -1,6 +1,7 @@
 #ifndef BLOCK_H
 #define BLOCK_H
 #define BLOCK_SIZE 4096
+#include <string>
 class Block
 {
 public:
@@ -15,8 +16,13 @@ public:
     void setContent(char *newContent);
 
     bool edit(char* content, unsigned long position, unsigned long offset);
+    void setHash(const std::string &newHash);
+
+    const std::string getHash() const;
+    void generate_hash();
 private:
     unsigned short block_usage;
+    std::string hash;
     char *content;
 };
 

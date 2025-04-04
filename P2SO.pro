@@ -7,12 +7,13 @@ SOURCES += \
         block.cpp \
         file.cpp \
         main.cpp \
-        md5.cpp \
-        vcm.cpp
-
+        utilities.cpp \
+        vcm.cpp  
+INCLUDEPATH += "C:/msys64/mingw64/include"
+LIBS += -L"C:/msys64/mingw64/lib" -lssl -lcrypto
 HEADERS += \
     block.h \
     file.h \
     json.hpp \
-    md5.h \
+    utilities.h \
     vcm.h
