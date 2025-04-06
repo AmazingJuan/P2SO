@@ -30,7 +30,9 @@ File::File(const std::string &filename, bool recently_created = false)
 
 File::~File()
 {
-    close();
+    if(buffer != nullptr) delete[] buffer;
+    if(loaded_block != nullptr) delete loaded_block;
+
 }
 
 void File::write(const char* content, std::streamsize stream_size)
@@ -84,8 +86,6 @@ void File::version()
 
 void File::close()
 {
-    if(buffer != nullptr) delete[] buffer;
-    if(loaded_block != nullptr) delete loaded_block;
 }
 
 const char *File::fill_buffer(const char *content, std::streamsize stream_size)
