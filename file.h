@@ -16,22 +16,20 @@ public:
     void write(const char *content, std::streamsize stream_size);
     void close();
 private:
-    std::string current_block_hash;
-
-    unsigned long read_position;
-    unsigned long write_position;
-    unsigned short blocks_number;
+    unsigned long current_position;
+    unsigned long byte_count;
     std::string filename;
     Block *loaded_block;
+    unsigned long loaded_block_index;
     std::vector<std::string> blocks_hashes;
     char *buffer;
     unsigned short buffer_usage;
     json metadata;
-    const char* fill_buffer(const char *content, std::streamsize stream_size, unsigned long &left_streamsize);
+    const char *fill_buffer(const char *content, std::streamsize stream_size);
+    void transfer_to_block(const char* content, const unsigned long streamsize);
     void dispose_block();
-    void select_block(unsigned int block_number);
+    void seekr(unsigned long byte_pos);
     unsigned int latest_version;
-    void generate_buffer_hash();
     void sync();
     void version();
 

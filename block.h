@@ -8,16 +8,11 @@ public:
     Block();
     ~Block();
     void setBlock_usage(unsigned short newBlock_usage);
-
     unsigned short getBlock_usage() const;
-
     char *getContent() const;
-
     void setContent(char *newContent);
-
-    bool edit(char* content, unsigned long position, unsigned long offset);
+    bool edit(const char* content, unsigned long offset);
     void setHash(const std::string &newHash);
-
     const std::string getHash() const;
     void generate_hash();
 private:

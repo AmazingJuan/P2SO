@@ -10,11 +10,7 @@ VCM::VCM() {
 
     if (!fs::exists(VCM_META_FILENAME) || !fs::is_regular_file(VCM_META_FILENAME)){
         std::ofstream archivo(VCM_META_FILENAME);
-        json j;
-        j["blocks"] = json::array();
-        archivo << j.dump(4);  // dump(4) para indentado limdo
         archivo.close();
-
     }
 }
 

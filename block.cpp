@@ -30,14 +30,15 @@ void Block::setContent(char *newContent)
     content = newContent;
 }
 
-bool Block::edit(char *content, unsigned long position, unsigned long offset)
+bool Block::edit(const char *content, unsigned long offset)
 {
     unsigned long i;
-    for(i = 0; i != offset - 1 && position + i != BLOCK_SIZE - 1; i++){
-        this->content[position + i] = content[i];
+    for(i = 0; i != offset && block_usage != BLOCK_SIZE; i++){
+        this->content[block_usage] = content[i];
+        block_usage++;
     }
 
-    if(i == offset - 1){
+    if(i == offset){
         return true;
     }
     else{
@@ -57,5 +58,5 @@ const std::string Block::getHash() const
 
 void Block::generate_hash()
 {
-    md5(content);
+    hash = md5(content);
 }

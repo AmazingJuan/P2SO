@@ -18,7 +18,6 @@ File::File(const std::string &filename, bool recently_created = false)
             meta.close();
         }
         archivo.close();
-        blocks_number = 0;
         loaded_block = new Block;
         latest_version = 0;
     }
@@ -36,44 +35,50 @@ File::~File()
 
 void File::write(const char* content, std::streamsize stream_size)
 {
-    unsigned long left_streamsize;
-    const char *left_content = fill_buffer(content, stream_size, left_streamsize);
-    if(left_content != nullptr || buffer_usage == BLOCK_SIZE)
+    unsigned long left_buffer_streamsize = stream_size;
+    const char *left_buffer_content = fill_buffer(content, stream_size);
+    left_buffer_streamsize -= buffer_usage;
+
+    if(left_buffer_streamsize > 0)
     {
-        generate_buffer_hash();
-        sync();
-        version();
+        loaded_block->edit("aa", 2);
+        transfer_to_block(buffer, buffer_usage);
         delete[] buffer;
         buffer = new char[BLOCK_SIZE]();
         buffer_usage = 0;
-        write(left_content, left_streamsize);
+        write(left_buffer_content, left_buffer_streamsize);
     }
 }
 
 void File::sync()
 {
     std::ofstream archivo(filename, std::ios::app);
-    archivo.write(buffer, buffer_usage);
+    archivo.write(loaded_block->getContent(), loaded_block->getBlock_usage());
     archivo.close();
-    std::fstream vcm_data(VCM_META_FILENAME, std::ios::in|std::ios::out);
-    json j = json::parse(vcm_data);
+
+    std::fstream vcm_data(VCM_META_FILENAME, std::ios::in|std::ios::out|std::ios::ate);
+    json j;
+    if(vcm_data.tellg() != 0){
+        vcm_data.seekg(0);
+        j = json::parse(vcm_data);
+    }
     std::ofstream vcm_blocks(VCM_BLOCKS_FILENAME, std::ios::app);
-    if (!hash_exists(j, current_block_hash)){
+    std::string current_block_hash = loaded_block->getHash();
+    if (!j.contains(current_block_hash)){
         unsigned int pos = vcm_blocks.tellp();
-        j["blocks"].push_back({{"hash", current_block_hash}, {"pos", pos}, {"offset", buffer_usage}});
+        j[current_block_hash]= {{"pos", pos}, {"offset", loaded_block->getBlock_usage()}};
         save_json(j, VCM_META_FILENAME);
-        vcm_blocks.write(buffer, buffer_usage);
+        vcm_blocks.write(loaded_block->getContent(), loaded_block->getBlock_usage());
         vcm_blocks.close();
     }
-
+    vcm_data.close();
 }
 
 void File::version()
 {
-    blocks_hashes.push_back(current_block_hash);
+    blocks_hashes.push_back(loaded_block->getHash());
     latest_version++;
-    metadata["versions"].push_back({{"name", "v" + std::to_string(latest_version)}, {"blocks", blocks_hashes}, {"timestamp", get_time_stamp()}});
-
+    metadata["versions"].insert(metadata["versions"].begin(), json{{"name", "v" + std::to_string(latest_version)}, {"blocks", blocks_hashes}, {"timestamp", get_time_stamp()}});
     save_json(metadata, filename + FILE_METADATA_EXTENSION);
 }
 
@@ -83,18 +88,17 @@ void File::close()
     if(loaded_block != nullptr) delete loaded_block;
 }
 
-const char *File::fill_buffer(const char *content, std::streamsize stream_size, unsigned long &left_streamsize)
+const char *File::fill_buffer(const char *content, std::streamsize stream_size)
 {
     unsigned int cont = 0;
     while(buffer_usage != BUFFER_SIZE && cont != stream_size){
         buffer[buffer_usage] = content[cont];
         buffer_usage++;
         cont++;
-        write_position++;
+        current_position++;
     }
 
     if(buffer_usage == BUFFER_SIZE && cont != stream_size){
-        left_streamsize = stream_size - cont;
         return &content[cont];
     }
     else{
@@ -103,18 +107,43 @@ const char *File::fill_buffer(const char *content, std::streamsize stream_size, 
 
 }
 
+void File::transfer_to_block(const char* content, const unsigned long streamsize)
+{
+
+    const char *left_block_content = content;
+    unsigned long left_block_streamsize = streamsize;
+    unsigned long previous_block_usage = loaded_block->getBlock_usage();
+    while(left_block_content != nullptr){
+        loaded_block->edit(left_block_content, left_block_streamsize);
+        if(loaded_block->getBlock_usage() == BLOCK_SIZE){
+            loaded_block->generate_hash();
+            sync();
+            version();
+            left_block_streamsize -= loaded_block->getBlock_usage() - previous_block_usage;
+            left_block_content = &content[loaded_block->getBlock_usage() - previous_block_usage];
+            delete loaded_block;
+            loaded_block = new Block();
+            if(left_block_streamsize == 0) left_block_content = nullptr;
+        }
+        else{
+            left_block_content = nullptr;
+        }
+    }
+}
+
 void File::dispose_block()
 {
     delete loaded_block;
     loaded_block = new Block();
 }
 
-void File::select_block(unsigned int block_number)
+void File::seekr(unsigned long byte_pos)
 {
+    unsigned long block_count = 0;
+    std::ifstream archivo(VCM_META_FILENAME);
+    json VCM_META = json::parse(archivo);
+    for(std::string block : blocks_hashes){
 
-}
 
-void File::generate_buffer_hash()
-{
-    current_block_hash = md5(buffer);
+    }
 }
