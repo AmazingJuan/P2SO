@@ -2,6 +2,7 @@
 #include "utilities.h"
 Block::Block() {
     content = new char[BLOCK_SIZE]();
+    content[BLOCK_SIZE] = 0;
     block_usage = 0;
 }
 
@@ -58,5 +59,5 @@ const std::string Block::getHash() const
 
 void Block::generate_hash()
 {
-    hash = md5(content);
+    hash = sha256(content);
 }

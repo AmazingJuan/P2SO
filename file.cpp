@@ -3,14 +3,15 @@
 #include <iostream>
 #include "vcm.h"
 #include "utilities.h"
-File::File(const std::string &filename, bool recently_created = false)
+File::File(const std::string &filename, json *system_meta, bool recently_created = false)
 {
     this -> filename = filename;
     if(recently_created){
-        std::fstream archivo(filename, std::ios::out);
+        std::ofstream archivo(filename);
         std::fstream archivo2(filename + FILE_METADATA_EXTENSION, std::ios::out);
         json j;
-        j["versions"] = json::array();
+        j[FILE_VERSIONS_KEY] = json::array();
+        j[FILE_LATEST_CHECK_KEY] = true;
         metadata = j;
         std::ofstream meta(filename + FILE_METADATA_EXTENSION);
         if (meta.is_open()) {
@@ -26,6 +27,7 @@ File::File(const std::string &filename, bool recently_created = false)
     }
     buffer = new char[BUFFER_SIZE]();
     buffer_usage = 0;
+    this ->vcm_meta = system_meta;
 }
 
 File::~File()
@@ -41,9 +43,8 @@ void File::write(const char* content, std::streamsize stream_size)
     const char *left_buffer_content = fill_buffer(content, stream_size);
     left_buffer_streamsize -= buffer_usage;
 
-    if(left_buffer_streamsize > 0)
+    if(left_buffer_streamsize > 0 || buffer_usage == BUFFER_SIZE)
     {
-        loaded_block->edit("aa", 2);
         transfer_to_block(buffer, buffer_usage);
         delete[] buffer;
         buffer = new char[BLOCK_SIZE]();
@@ -58,30 +59,49 @@ void File::sync()
     archivo.write(loaded_block->getContent(), loaded_block->getBlock_usage());
     archivo.close();
 
-    std::fstream vcm_data(VCM_META_FILENAME, std::ios::in|std::ios::out|std::ios::ate);
-    json j;
-    if(vcm_data.tellg() != 0){
-        vcm_data.seekg(0);
-        j = json::parse(vcm_data);
-    }
     std::ofstream vcm_blocks(VCM_BLOCKS_FILENAME, std::ios::app);
     std::string current_block_hash = loaded_block->getHash();
-    if (!j.contains(current_block_hash)){
+    if ((*vcm_meta)[META_BLOCKS_KEY].is_null() || !(*vcm_meta)[META_BLOCKS_KEY].contains(current_block_hash)){
+        vcm_blocks.seekp(0, std::ios::end);
         unsigned int pos = vcm_blocks.tellp();
-        j[current_block_hash]= {{"pos", pos}, {"offset", loaded_block->getBlock_usage()}};
-        save_json(j, VCM_META_FILENAME);
+        (*vcm_meta)[META_BLOCKS_KEY][current_block_hash] =  {{"offset", loaded_block->getBlock_usage()}, {"pos", pos}};
+        save_json(*vcm_meta, VCM_META_FILENAME);
         vcm_blocks.write(loaded_block->getContent(), loaded_block->getBlock_usage());
         vcm_blocks.close();
     }
-    vcm_data.close();
 }
 
 void File::version()
 {
     blocks_hashes.push_back(loaded_block->getHash());
     latest_version++;
-    metadata["versions"].insert(metadata["versions"].begin(), json{{"name", "v" + std::to_string(latest_version)}, {"blocks", blocks_hashes}, {"timestamp", get_time_stamp()}});
+    metadata[FILE_VERSIONS_KEY].insert(metadata[FILE_VERSIONS_KEY].begin(), json{{"name", "v" + std::to_string(latest_version)}, {"blocks", blocks_hashes}, {"timestamp", get_time_stamp()}});
     save_json(metadata, filename + FILE_METADATA_EXTENSION);
+}
+
+void File::move(const unsigned long desired_position)
+{
+    unsigned long position_counter = 0;
+    for(std::string hash : blocks_hashes){
+        unsigned long offset = (*vcm_meta)[hash]["offset"];
+        if(position_counter >= desired_position && desired_position < position_counter + offset){
+            if(hash != loaded_block->getHash()){
+                delete loaded_block;
+                char *content = new char[offset];
+                std::ifstream system_blocks(VCM_BLOCKS_FILENAME, std::ios_base::binary);
+                unsigned long position = (*vcm_meta)[hash]["pos"];
+                system_blocks.seekg(position);
+                system_blocks.read(content, offset);
+                loaded_block = new Block();
+                system_blocks.close();
+                break;
+            }
+        }
+        else{
+            position_counter += offset;
+        }
+    }
+
 }
 
 void File::close()
@@ -95,7 +115,6 @@ const char *File::fill_buffer(const char *content, std::streamsize stream_size)
         buffer[buffer_usage] = content[cont];
         buffer_usage++;
         cont++;
-        current_position++;
     }
 
     if(buffer_usage == BUFFER_SIZE && cont != stream_size){
