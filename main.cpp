@@ -3,7 +3,11 @@
 int main()
 {
     VCM sistema;
-    File archivos = sistema.create("archivoss.txt");
+    /*
+    File archivos = sistema.open("archivoss.txt");
+    archivos.move(4096);
+    */
+    File archivos = sistema.create("archivossss.txt");
     std::string hola(4095, 'a');
     hola += "e";
     std::cout << hola[4095];

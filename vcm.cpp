@@ -31,7 +31,7 @@ File VCM::open(const std::string &filename)
     if(isFound){
         std::ifstream meta_file(filename + FILE_METADATA_EXTENSION);
         json file_meta = json::parse(meta_file);
-        if(file_meta[FILE_LATEST_CHECK_KEY] || !fs::exists(filename)){
+        if(!file_meta[FILE_LATEST_CHECK_KEY] || !fs::exists(filename)){
             std::ofstream phys_file(filename, std::ios_base::binary);
             std::ifstream blocks_file(VCM_BLOCKS_FILENAME, std::ios_base::binary);
             for(std::string hash : file_meta[FILE_VERSIONS_KEY][0]["blocks"]){
@@ -46,9 +46,11 @@ File VCM::open(const std::string &filename)
             phys_file.close();
             blocks_file.close();
         }
-
+        return File(filename, metadata, false);
     }
-    return create("");
+    else{
+        return create(filename);
+    }
 }
 
 File VCM::create(const std::string &filename)

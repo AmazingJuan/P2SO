@@ -6,6 +6,7 @@ class Block
 {
 public:
     Block();
+    Block(const char* content, unsigned long offset, const std::string &hash);
     ~Block();
     void setBlock_usage(unsigned short newBlock_usage);
     unsigned short getBlock_usage() const;
@@ -15,8 +16,12 @@ public:
     void setHash(const std::string &newHash);
     const std::string getHash() const;
     void generate_hash();
+    unsigned short getIn_block_position() const;
+    void setIn_block_position(unsigned short newIn_block_position);
+
 private:
     unsigned short block_usage;
+    unsigned short in_block_position;
     std::string hash;
     char *content;
 };
