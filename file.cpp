@@ -165,22 +165,7 @@ void File::transfer_to_block(const char* content, const std::streamsize streamsi
         version();
         left_block_streamsize -= loaded_block->getIn_block_position() - previous_block_usage;
         left_block_content = &content[loaded_block->getBlock_usage() - previous_block_usage];
-        if(left_block_streamsize == 0) {
-            left_block_content = nullptr;
-        }
-        else{
-            if(loaded_block->getIn_block_position() == BLOCK_SIZE && loaded_block_index == blocks_hashes.size() - 1){
-                delete loaded_block;
-                loaded_block = new Block();
-            }
-            else{
-                loaded_block_index++;
-                load_block(blocks_hashes[loaded_block_index]);
-            }
-
-
-
-        }
+        //PENDING FIX
     }
 }
 
