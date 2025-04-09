@@ -21,7 +21,7 @@ Block::Block(const char *content, unsigned long offset, const std::string &hash)
 
 Block::~Block()
 {
-    if(content != nullptr) delete [] content;
+    if(block_usage != 0) delete[] content;
 }
 
 void Block::setBlock_usage(unsigned short newBlock_usage)
@@ -53,10 +53,7 @@ bool Block::edit(const char *content, unsigned long offset)
             block_usage++;
         }
         in_block_position++;
-
-
     }
-
     if(i == offset){
         return true;
     }

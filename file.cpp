@@ -45,6 +45,7 @@ File::File(const std::string &filename, json *system_meta, bool recently_created
             loaded_block = new Block();
         }
     }
+    blocks_hashes.push_back("blank");
     actual_position = 0;
     buffer = new char[BUFFER_SIZE]();
     buffer_usage = 0;
@@ -54,9 +55,9 @@ File::File(const std::string &filename, json *system_meta, bool recently_created
 
 File::~File()
 {
+    close();
     if(buffer != nullptr) delete[] buffer;
     if(loaded_block != nullptr) delete loaded_block;
-
 }
 
 void File::write(const char* content, std::streamsize stream_size)
@@ -80,11 +81,10 @@ void File::write(const char* content, std::streamsize stream_size)
 void File::sync()
 {
     std::ofstream archivo(filename, std::ios::app);
-    std::streamsize position = actual_position - loaded_block->getIn_block_position();
-    archivo.seekp(position);
+    int var = actual_position - loaded_block->getIn_block_position();
+    archivo.seekp(actual_position - loaded_block->getIn_block_position());
     archivo.write(loaded_block->getContent(), loaded_block->getBlock_usage());
     archivo.close();
-
     std::ofstream vcm_blocks(VCM_BLOCKS_FILENAME, std::ios::app);
     std::string current_block_hash = loaded_block->getHash();
     if ((*vcm_meta)[META_BLOCKS_KEY].is_null() || !(*vcm_meta)[META_BLOCKS_KEY].contains(current_block_hash)){
@@ -99,9 +99,14 @@ void File::sync()
 
 void File::version()
 {
-    blocks_hashes.push_back(loaded_block->getHash());
     latest_version++;
-    metadata[FILE_VERSIONS_KEY].insert(metadata[FILE_VERSIONS_KEY].begin(), json{{"id", latest_version}, {"blocks", blocks_hashes}, {"timestamp", get_time_stamp()}});
+    auto aux = json::array();
+    for(std::string hash : blocks_hashes){
+        if(hash != "blank"){
+            aux.push_back(hash);
+        }
+    }
+    metadata[FILE_VERSIONS_KEY].insert(metadata[FILE_VERSIONS_KEY].begin(), json{{"id", latest_version}, {"blocks", aux}, {"timestamp", get_time_stamp()}});
     save_json(metadata, filename + FILE_METADATA_EXTENSION);
 }
 
@@ -131,6 +136,9 @@ void File::move(const unsigned long desired_position)
 
 void File::close()
 {
+    if(buffer_usage > 0){
+        transfer_to_block(buffer, buffer_usage);
+    }
 }
 
 const char *File::fill_buffer(const char *content, std::streamsize stream_size)
@@ -140,7 +148,6 @@ const char *File::fill_buffer(const char *content, std::streamsize stream_size)
         buffer[buffer_usage] = content[cont];
         buffer_usage++;
         cont++;
-        actual_position++;
     }
 
     if(buffer_usage == BUFFER_SIZE && cont != stream_size){
@@ -158,14 +165,30 @@ void File::transfer_to_block(const char* content, const std::streamsize streamsi
     const char *left_block_content = content;
     unsigned long left_block_streamsize = streamsize;
     unsigned long previous_block_usage = loaded_block->getIn_block_position();
-    while(left_block_content != nullptr){
+    while(left_block_streamsize != 0){
         loaded_block->edit(left_block_content, left_block_streamsize);
         loaded_block->generate_hash();
+        blocks_hashes[loaded_block_index] = loaded_block->getHash();
+        left_block_streamsize -= loaded_block->getIn_block_position() - previous_block_usage;
+        auto var = loaded_block->getIn_block_position() - previous_block_usage;
+        left_block_content = &left_block_content[loaded_block->getIn_block_position() - previous_block_usage];
+        actual_position += loaded_block->getIn_block_position() - previous_block_usage;
         sync();
         version();
-        left_block_streamsize -= loaded_block->getIn_block_position() - previous_block_usage;
-        left_block_content = &content[loaded_block->getBlock_usage() - previous_block_usage];
-        //PENDING FIX
+        if(loaded_block->getIn_block_position() == BLOCK_SIZE){
+            delete loaded_block;
+            if(loaded_block_index == blocks_hashes.size() - 1){
+                loaded_block = new Block();
+                blocks_hashes.push_back("blank");
+            }
+            else if(blocks_hashes[++loaded_block_index] != "blank"){
+                load_block(blocks_hashes[loaded_block_index]);
+            }
+            else{
+                loaded_block = new Block();
+            }
+        }
+        previous_block_usage = loaded_block->getIn_block_position();
     }
 }
 
