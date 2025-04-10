@@ -26,12 +26,11 @@ VCM::VCM() {
 
 File VCM::open(const std::string &filename)
 {
-
     bool isFound = std::find((*metadata)[META_FILES_KEY].begin(), (*metadata)[META_FILES_KEY].end(), filename) != (*metadata)[META_FILES_KEY].end();
     if(isFound){
         std::ifstream meta_file(filename + FILE_METADATA_EXTENSION);
         json file_meta = json::parse(meta_file);
-        if(!file_meta[FILE_LATEST_CHECK_KEY] || !fs::exists(filename)){
+        if(!fs::exists(filename)){
             std::ofstream phys_file(filename, std::ios_base::binary);
             std::ifstream blocks_file(VCM_BLOCKS_FILENAME, std::ios_base::binary);
             for(std::string hash : file_meta[FILE_VERSIONS_KEY][0]["blocks"]){

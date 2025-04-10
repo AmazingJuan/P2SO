@@ -6,7 +6,7 @@ class Block
 {
 public:
     Block();
-    Block(const char* content, unsigned long offset, const std::string &hash);
+    Block(const char* content, unsigned long offset);
     ~Block();
     void setBlock_usage(unsigned short newBlock_usage);
     unsigned short getBlock_usage() const;

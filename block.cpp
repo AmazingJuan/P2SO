@@ -7,7 +7,7 @@ Block::Block() {
     in_block_position = 0;
 }
 
-Block::Block(const char *content, unsigned long offset, const std::string &hash)
+Block::Block(const char *content, unsigned long offset)
 {
     this->content = new char[BLOCK_SIZE]();
     this->content[BLOCK_SIZE] = 0;

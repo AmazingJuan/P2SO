@@ -8,6 +8,7 @@
 #define FILE_LATEST_CHECK_KEY "latest_version_shown"
 #define FILE_VERSIONS_KEY "versions"
 #define FILE_LATEST_SIZE "latest_size"
+#define FILE_LATEST_VERSION "latest_version"
 using json = nlohmann::json;
 
 class File
@@ -18,9 +19,10 @@ public:
     void write(const char *content, std::streamsize stream_size);
     void read(char *content, std::streamsize stream_size);
     void move(const unsigned long desired_position);
+    std::string get_versions();
+    void change_version(unsigned long id);
     void close();
 private:
-    unsigned long byte_count;
     unsigned long actual_position;
     std::string filename;
     Block *loaded_block;
@@ -33,12 +35,9 @@ private:
     const char *fill_buffer(const char *content, std::streamsize stream_size);
     void transfer_to_block(const char* content, const std::streamsize streamsize);
     void load_block(const std::string &hash);
-    void dispose_block();
-    void seekr(unsigned long byte_pos);
     unsigned int latest_version;
+    unsigned int current_version;
     void sync();
     void version();
-
-
 };
 #endif // FILE_H
