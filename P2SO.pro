@@ -16,6 +16,5 @@ HEADERS += \
     block.h \
     file.h \
     json.hpp \
-    sha.h \
     utilities.h \
     vcm.h

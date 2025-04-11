@@ -11,12 +11,13 @@ class Block
 public:
     Block();
     Block(const std::vector<char>& content, unsigned long offset);
-    ~Block() = default;
+    ~Block();
 
     void setBlock_usage(unsigned short newBlock_usage);
     unsigned short getBlock_usage() const;
 
     const char* getContent() const;
+    char getByte();
     void setContent(const std::vector<char>& newContent);
 
     bool edit(const char* content, unsigned long offset);

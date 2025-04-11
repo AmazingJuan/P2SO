@@ -23,10 +23,14 @@ public:
     void change_version(unsigned long id);
     void close();
     void handle_strange();
+    unsigned long memory_usage();
+    void version();
+    bool is_open;
 private:
     unsigned long actual_position;
     std::string filename;
     Block *loaded_block;
+    Block *unwritten_block;
     unsigned long loaded_block_index;
     std::vector<std::string> blocks_hashes;
     std::vector<char> buffer;
@@ -39,7 +43,7 @@ private:
     unsigned int latest_version;
     unsigned int current_version;
     void sync();
-    void version();
     void check_new_block(const std::string &hash);
+    void next_block();
 };
 #endif // FILE_H

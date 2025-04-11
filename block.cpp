@@ -6,6 +6,7 @@ Block::Block()
 {
     content.resize(BLOCK_SIZE, 0);  // Inicializa con ceros
     block_usage = 0;
+    hash = "blank";
     in_block_position = 0;
 }
 
@@ -16,6 +17,12 @@ Block::Block(const std::vector<char>& content, unsigned long offset)
     block_usage = static_cast<unsigned short>(offset);
     in_block_position = 0;
     generate_hash();
+}
+
+Block::~Block()
+{
+    content.clear();
+    content.shrink_to_fit();
 }
 
 void Block::setBlock_usage(unsigned short newBlock_usage)
@@ -31,6 +38,13 @@ unsigned short Block::getBlock_usage() const
 const char* Block::getContent() const
 {
     return content.data();
+}
+
+char Block::getByte()
+{
+    char byte = content[in_block_position];
+    in_block_position++;
+    return byte;
 }
 
 void Block::setContent(const std::vector<char>& newContent)
