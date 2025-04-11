@@ -14,7 +14,6 @@ VCM::VCM() {
         metadata = new json;
         (*metadata)[META_FILES_KEY] = json::array();
         (*metadata)[META_BLOCKS_KEY] = {};
-        save_json(*metadata, VCM_META_FILENAME);
     }
     else{
         std::ifstream archivo(VCM_META_FILENAME);
@@ -24,10 +23,19 @@ VCM::VCM() {
     }
 }
 
-File VCM::open(const std::string &filename)
+VCM::~VCM()
+{
+    for (auto& pair : opened_files) {
+        delete pair.second;
+    }
+    opened_files.clear();
+    save_json(*metadata, VCM_META_FILENAME);
+}
+
+File &VCM::open(const std::string &filename)
 {
     bool isFound = std::find((*metadata)[META_FILES_KEY].begin(), (*metadata)[META_FILES_KEY].end(), filename) != (*metadata)[META_FILES_KEY].end();
-    if(isFound){
+    if(isFound && fs::exists(filename + FILE_METADATA_EXTENSION)){
         std::ifstream meta_file(filename + FILE_METADATA_EXTENSION);
         json file_meta = json::parse(meta_file);
         if(!fs::exists(filename)){
@@ -45,18 +53,25 @@ File VCM::open(const std::string &filename)
             phys_file.close();
             blocks_file.close();
         }
-        return File(filename, metadata, false);
+        opened_files[filename] = new File(filename, metadata, false);
+        return *opened_files[filename];
     }
     else{
         return create(filename);
     }
 }
 
-File VCM::create(const std::string &filename)
+File &VCM::create(const std::string &filename)
 {
+    bool handle_flag = false;
+    if(fs::exists(filename) && !fs::exists(filename + FILE_METADATA_EXTENSION)){
+        handle_flag = true;
+    }
     (*metadata)[META_FILES_KEY].push_back(filename);
-    save_json(*metadata, VCM_META_FILENAME);
     opened_files[filename] = new File(filename, metadata, true);
+    if(handle_flag){
+        opened_files[filename]->handle_strange();
+    }
     return *opened_files[filename];
 }
 

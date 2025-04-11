@@ -1,27 +1,21 @@
 #include "block.h"
 #include "utilities.h"
-Block::Block() {
-    content = new char[BLOCK_SIZE]();
-    content[BLOCK_SIZE] = 0;
+#include <algorithm>
+
+Block::Block()
+{
+    content.resize(BLOCK_SIZE, 0);  // Inicializa con ceros
     block_usage = 0;
     in_block_position = 0;
 }
 
-Block::Block(const char *content, unsigned long offset)
+Block::Block(const std::vector<char>& content, unsigned long offset)
 {
-    this->content = new char[BLOCK_SIZE]();
-    this->content[BLOCK_SIZE] = 0;
-    block_usage = offset;
-    for(unsigned long i = 0; i < offset; i++){
-        this->content[i] = content[i];
-    }
+    this->content.resize(BLOCK_SIZE, 0);
+    std::copy_n(content.begin(), std::min(offset, static_cast<unsigned long>(BLOCK_SIZE)), this->content.begin());
+    block_usage = static_cast<unsigned short>(offset);
     in_block_position = 0;
     generate_hash();
-}
-
-Block::~Block()
-{
-    if(block_usage != 0) delete[] content;
 }
 
 void Block::setBlock_usage(unsigned short newBlock_usage)
@@ -34,32 +28,30 @@ unsigned short Block::getBlock_usage() const
     return block_usage;
 }
 
-char *Block::getContent() const
+const char* Block::getContent() const
 {
-    return content;
+    return content.data();
 }
 
-void Block::setContent(char *newContent)
+void Block::setContent(const std::vector<char>& newContent)
 {
     content = newContent;
+    block_usage = static_cast<unsigned short>(std::min(static_cast<size_t>(BLOCK_SIZE), newContent.size()));
 }
 
-bool Block::edit(const char *content, unsigned long offset)
+bool Block::edit(const char* input, unsigned long offset)
 {
-    unsigned long i;
-    for(i = 0; i != offset && in_block_position != BLOCK_SIZE; i++){
-        this->content[in_block_position] = content[i];
-        if(in_block_position  == block_usage){
+    unsigned long i = 0;
+    while (i < offset && in_block_position < BLOCK_SIZE) {
+        content[in_block_position] = input[i];
+        if (in_block_position == block_usage) {
             block_usage++;
         }
         in_block_position++;
+        i++;
     }
-    if(i == offset){
-        return true;
-    }
-    else{
-        return false;
-    }
+
+    return i == offset;
 }
 
 void Block::setHash(const std::string &newHash)
@@ -74,7 +66,7 @@ const std::string Block::getHash() const
 
 void Block::generate_hash()
 {
-    hash = sha256(content);
+    hash = sha256(content.data(), block_usage);
 }
 
 unsigned short Block::getIn_block_position() const

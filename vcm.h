@@ -14,10 +14,11 @@ class VCM
 {
 public:
     VCM();
+    ~VCM();
     void extracted(json &file_meta, std::ofstream &phys_file,
                    std::ifstream &blocks_file);
-    File open(const std::string &filename);
-    File create(const std::string &filename);
+    File& open(const std::string &filename);
+    File& create(const std::string &filename);
 private:
     std::unordered_map<std::string, File*> opened_files;
     json *metadata;
